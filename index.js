@@ -1,4 +1,5 @@
-      // Initialize Socket.IO
+      
+        // Initialize Socket.IO
       const socket = io('http://localhost:3000');
 
       // Wait for messages
