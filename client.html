@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title> Button click tracker </title>
+   </head>
+
+   <body>
+		 <h1>Button click tracker </h1>	 
+		 <p id="buttonPress">Button has been pressed 0 times</p>
+		 <button onclick="buttonPressed()">Click me</button>
+		 <script src="/socket.io/socket.io.js"></script>
+		 <script>
+			 const socket = io.connect();
+			 function buttonPressed(){
+			   socket.emit('pressed');
+			 }
+			 
+			 socket.on('buttonUpdate', (count) => {
+				 document.getElementById("buttonPress").innerHTML = 'Button has been pressed ' + count + ' times.';
+			 });
+		</script>
+   </body>
+</html>
