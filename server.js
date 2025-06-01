@@ -29,7 +29,12 @@
       console.error('Server socket error:', err);
     });
 
-    app.get('/',(req,res)=>{
-      res.sendFile(path.resolve(__dirname,'client.html'))
-    })
+    // Serve static files from the React app build directory
+    app.use(express.static(path.join(__dirname, 'my-app/build')));
+
+    // The "catchall" handler: for any request that doesn't
+    // match one above, send back React's index.html file.
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'my-app/build', 'index.html'));
+    });
  
