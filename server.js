@@ -14,10 +14,19 @@
     // Listen for incoming connections
     io.on('connection', (client) => {  
         console.log("Client connected")
+
+        client.on('error', (err) => {
+          console.error('Client socket error:', err);
+        });
+
         client.on('pressed', (data)=> {
           noOfClicks++;
           io.emit('buttonUpdate', noOfClicks);
         });
+    });
+
+    io.on('error', (err) => {
+      console.error('Server socket error:', err);
     });
 
     app.get('/',(req,res)=>{

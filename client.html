@@ -16,7 +16,20 @@
 			 }
 			 
 			 socket.on('buttonUpdate', (count) => {
-				 document.getElementById("buttonPress").innerHTML = 'Button has been pressed ' + count + ' times.';
+				 const buttonPressElement = document.getElementById("buttonPress");
+				 if (buttonPressElement) {
+					buttonPressElement.innerHTML = 'Button has been pressed ' + count + ' times.';
+				 } else {
+					 console.error('Element with ID "buttonPress" not found.');
+				 }
+			 });
+
+			 socket.on('connect_error', (err) => {
+				console.error('Connection Error:', err);
+			 });
+
+			 socket.on('disconnect', (reason) => {
+				console.log('Disconnected:', reason);
 			 });
 		</script>
    </body>
