@@ -4,7 +4,8 @@
   "description": "[Edit on StackBlitz ⚡️](https://stackblitz.com/edit/web-platform-xbwfjz)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "start": "node server.js"
   },
   "repository": {
     "type": "git",
@@ -19,6 +20,10 @@
   "homepage": "https://github.com/rajeshceg3/socketio-client#readme",
   "dependencies": {
     "express": "^4.18.2",
-    "socketio": "^1.0.0"
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "socket.io-client": "^4.8.1"
   }
 }
