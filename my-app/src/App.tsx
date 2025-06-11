@@ -1,13 +1,13 @@
 import React from 'react';
-import './App.css';
-import ChatWindow from './ChatWindow';
+        import './App.css';
+        import ClickTracker from './ClickTracker'; // Updated import
 
-function App() {
-  return (
-    <div className="App">
-      <ChatWindow />
-    </div>
-  );
-}
+        function App() {
+          return (
+            <div className="App">
+              <ClickTracker /> {/* Updated component */}
+            </div>
+          );
+        }
 
-export default App;
+        export default App;
