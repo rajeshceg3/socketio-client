@@ -15,6 +15,7 @@ This application tracks button clicks in real-time across all connected clients.
 - Broadcasts updates to all connected clients.
 - Simple, intuitive interface.
 - Basic error handling for socket connections.
+- Click count persistence: The total click count is saved to `clickCount.json` and reloaded when the server restarts.
 
 ## Prerequisites
 - Node.js and npm (Node Package Manager) installed on your system.
@@ -59,4 +60,5 @@ This application tracks button clicks in real-time across all connected clients.
 -   `server.js`: Contains the main server-side logic using Node.js, Express.js, and Socket.io. It handles client connections, button press events, and broadcasts updates.
 -   `client.html`: The client-side HTML file that users interact with. It includes JavaScript to connect to the server via Socket.io, send button press events, and update the display with the latest click count.
 -   `package.json`: Defines project metadata, dependencies (like Express and Socket.io), and scripts (like `npm start`).
+-   `clickCount.json`: Stores the current click count, allowing persistence across server restarts.
 -   `README.md`: This file, providing information about the project.
