@@ -2,9 +2,31 @@
     const express = require('express')
     const socketio = require('socket.io')
     const path = require('path')
+    const fs = require('fs') // Added fs module
     const PORT = 3000
     const app = express()
     let noOfClicks = 0
+    const clickCountFile = 'clickCount.json';
+
+    // Read click count from file on startup
+    try {
+      if (fs.existsSync(clickCountFile)) {
+        const data = fs.readFileSync(clickCountFile, 'utf8');
+        if (data) {
+          noOfClicks = JSON.parse(data).count;
+          console.log('Read click count from file:', noOfClicks);
+        } else {
+          console.log('clickCount.json is empty, initializing count to 0.');
+          noOfClicks = 0;
+        }
+      } else {
+        console.log('clickCount.json not found, initializing count to 0.');
+        noOfClicks = 0;
+      }
+    } catch (err) {
+      console.error('Error reading clickCount.json:', err);
+      noOfClicks = 0; // Initialize to 0 in case of an error
+    }
 
     const server = app.listen(PORT, ()=>{
       console.log(`Server listening in ${PORT}`)
@@ -24,6 +46,13 @@
         client.on('buttonClicked', ()=> { // data is not used
           noOfClicks++;
           console.log("Button clicked! New count:", noOfClicks); // Add server log for click
+          // Write updated click count to file
+          try {
+            fs.writeFileSync(clickCountFile, JSON.stringify({ count: noOfClicks }));
+            console.log('Wrote click count to file:', noOfClicks);
+          } catch (err) {
+            console.error('Error writing clickCount.json:', err);
+          }
           io.emit('updateCount', noOfClicks);
         });
 
