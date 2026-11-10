@@ -1,88 +1,98 @@
-const http = require('http');
-const { Server } = require('socket.io');
 const Client = require('socket.io-client');
-const express = require('express'); // Ensure express is available for the app
-const path = require('path'); // Ensure path is available
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { createClickTracker } = require('./server');
 
-// Import parts of server.js logic or structure it for testing
-// For this simple case, we might need to slightly adapt server.js or replicate its core for testing
-// Let's assume server.js is started externally or we start a similar server instance here.
+// Tests drive the real server factory with real socket.io clients.
 
-describe('Socket.io Server', () => {
-  let io, serverSocket, clientSocket, httpServer, app;
-  let noOfClicks = 0; // Replicate and manage state for testing
+describe('Click tracker server', () => {
+  let tracker, port, tmpFile;
+  const clients = [];
 
-  beforeAll((done) => {
-    app = express(); // Create an express app for the server
-    httpServer = http.createServer(app);
-    io = new Server(httpServer);
+  function connect() {
+    const c = Client(`http://127.0.0.1:${port}`, { transports: ['websocket'] });
+    clients.push(c);
+    return c;
+  }
 
-    // Replicate server.js connection logic
-    io.on('connection', (socket) => {
-      serverSocket = socket; // Keep a reference to the server's socket
-      console.log("Test Client connected");
-      socket.on('pressed', (data) => {
-        noOfClicks++;
-        io.emit('buttonUpdate', noOfClicks);
-      });
-      socket.on('resetClicks', () => { // Add a utility for tests
-        noOfClicks = 0;
-        io.emit('buttonUpdate', noOfClicks);
-      });
-    });
-
-    app.get('/',(req,res)=>{ // Ensure server has a route
-        res.sendFile(path.resolve(__dirname,'client.html')) // Needs client.html or a mock
-    })
-
-
-    httpServer.listen(() => {
-      const port = httpServer.address().port;
-      clientSocket = Client(`http://localhost:${port}`);
-      clientSocket.on('connect', done);
-    });
-  });
-
-  afterAll(() => {
-    io.close();
-    clientSocket.close();
-    httpServer.close();
-  });
-
-  beforeEach((done) => { // Reset clicks before each test
-    if (serverSocket) {
-        serverSocket.emit('resetClicks'); // Emit reset to the server side logic
-         // Wait for the server to process and emit the update
-        clientSocket.once('buttonUpdate', (count) => {
-            if (count === 0) done();
-        });
-    } else {
-        noOfClicks = 0; // Fallback if direct emit is not set up for this specific test structure
-        done();
-    }
-  });
-
-  test('should connect a client', () => {
-    expect(clientSocket.connected).toBe(true);
-  });
-
-  test('should increment clicks and emit buttonUpdate', (done) => {
-    clientSocket.once('buttonUpdate', (count) => {
-      expect(count).toBe(1);
-      clientSocket.once('buttonUpdate', (count2) => {
-        expect(count2).toBe(2);
-        done();
-      });
-      clientSocket.emit('pressed');
-    });
-    clientSocket.emit('pressed');
-  });
-
-  test('noOfClicks should be reset between tests', (done) => {
-    clientSocket.once('buttonUpdate', (count) => {
-      expect(count).toBe(1);
+  beforeEach((done) => {
+    tmpFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'clicks-')), 'count.json');
+    tracker = createClickTracker({ clickCountFile: tmpFile });
+    tracker.server.listen(0, () => {
+      port = tracker.server.address().port;
       done();
     });
-    clientSocket.emit('pressed');
+  });
+
+  afterEach((done) => {
+    clients.forEach((c) => c.close());
+    clients.length = 0;
+    tracker.io.close();
+    tracker.server.close(() => done());
+  });
+
+  test('client connects and receives the current count', (done) => {
+    const c = connect();
+    c.on('updateCount', (count) => {
+      expect(count).toBe(0);
+      done();
+    });
+  });
+
+  test('buttonClicked increments and broadcasts the new count', (done) => {
+    const c = connect();
+    let seen = [];
+    c.on('updateCount', (count) => {
+      seen.push(count);
+      if (seen.length === 3) {
+        expect(seen).toEqual([0, 1, 2]);
+        done();
+      }
+    });
+    c.on('connect', () => {
+      c.emit('buttonClicked');
+      c.emit('buttonClicked');
+    });
+  });
+
+  test('a second client sees broadcasts from the first', (done) => {
+    const a = connect();
+    const b = connect();
+    let bInitial = false;
+    a.on('connect', () => a.emit('buttonClicked'));
+    b.on('updateCount', (count) => {
+      if (count === 0) bInitial = true;
+      if (count === 1) {
+        expect(bInitial).toBe(true);
+        done();
+      }
+    });
+  });
+
+  test('click count persists to the count file', (done) => {
+    const c = connect();
+    c.on('updateCount', (count) => {
+      if (count === 1) {
+        const saved = JSON.parse(fs.readFileSync(tmpFile, 'utf8'));
+        expect(saved.count).toBe(1);
+        done();
+      }
+    });
+    c.on('connect', () => c.emit('buttonClicked'));
+  });
+
+  test('a new instance restores the persisted count', (done) => {
+    fs.writeFileSync(tmpFile, JSON.stringify({ count: 41 }));
+    const second = createClickTracker({ clickCountFile: tmpFile });
+    second.server.listen(0, () => {
+      const c = Client(`http://127.0.0.1:${second.server.address().port}`, { transports: ['websocket'] });
+      c.on('updateCount', (count) => {
+        expect(count).toBe(41);
+        c.close();
+        second.io.close();
+        second.server.close(() => done());
+      });
+    });
   });
 });
